@@ -1,4 +1,4 @@
-
+﻿
 
     // create a variable that will hold the XMLHttpRequest() - this must be done outside a function so that all the functions can use the same variable var client;
     
@@ -68,7 +68,8 @@ function showPosition(position) {
 var xhr; // define the global variable to process the AJAX request
 function callDivChange() {
   xhr = new XMLHttpRequest();
-  xhr.open("GET", "/test1.html", true);
+  var filename = document.getElementById("filename").value;
+  xhr.open("GET", filename, true);
   xhr.onreadystatechange = processDivChange;
   try {
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
