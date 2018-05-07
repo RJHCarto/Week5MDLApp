@@ -1,92 +1,92 @@
-﻿
-
-    // create a variable that will hold the XMLHttpRequest() - this must be done outside a function so that all the functions can use the same variable var client;
-    
-    // and a variable that will hold the layer itself – we need to do this outside the function so that we can use it to remove the layer later on var earthquakelayer;
-    
-    // create the code to get the Earthquakes data using an XMLHttpRequest
-    function getEarthquakes() {
+﻿    // create the code to get the questions data using an XMLHttpRequest
+    function getQuestions() {
       client = new XMLHttpRequest();
 
-    client.open('GET','http://developer.cege.ucl.ac.uk:30290/getPOI');
-      client.onreadystatechange = earthquakeResponse; 
-      // note don't use earthquakeResponse() with brackets as that doesn't work
+    client.open('GET','http://developer.cege.ucl.ac.uk:30290/getGeoJSON/quizlet/geom');
+      client.onreadystatechange = questionResponse; 
+      // note don't use questionResponse() with brackets as that doesn't work
       client.send();
     }
     // create the code to wait for the response from the data server, and process the response once it is received
-    function earthquakeResponse() {
+    function questionResponse() {
     // this function listens out for the server to say that the data is ready - i.e. has state 4
     if (client.readyState == 4) {
       // once the data is ready, process the data
-      var earthquakedata = client.responseText;
-      loadEarthquakelayer(earthquakedata);
+      var questiondata = client.responseText;
+      loadquestionlayer(questiondata);
       }
     }
+
+
+ 
+    var app_array = [];
     // convert the received data - which is text - to JSON format and add it to the map
-    function loadEarthquakelayer(earthquakedata) {
+    function loadquestionlayer(questiondata) {
       // convert the text received from the server to JSON
-      var earthquakejson = JSON.parse(earthquakedata );
+      var questionjson = JSON.parse(questiondata);
+
       // load the geoJSON layer
-      var earthquakelayer = L.geoJson(earthquakejson,
+      var questionlayer = L.geoJson(questionjson,
       {
+
+
+        onEachFeature: function (feature, layer) {
+    layer.bindPopup(feature.properties.question+'<div> <form id="NPSform" style= "text-align:center" onsubmit="return (getScore()&& startAnswerUpload());"> <input type="radio" name="answer" id=check1 value="one" checked>'+feature.properties.answerone+ '<br> <input type="radio" name="answer" id=check2 value="two">'+feature.properties.answertwo+ '<br> <input type="radio" name="answer" id=check3 value="three">'+feature.properties.answerthree+ '<br> <input type="radio" name="answer" id=check4 value="four">' + feature.properties.answerfour +'<br> <input id="hidden" type="hidden" name="hidden" value='+feature.properties.correct+'><input id="question" type="hidden" name="question" value='+feature.properties.question+'> <input type="submit" name="mysubmit" value="Submit"/></form></div>');
+
+  }, 
+
         // use point to layer to create the points
         pointToLayer: function (feature, latlng)
         {
-        // look at the GeoJSON file - specifically at the properties - to see the earthquake magnitude and use a different marker depending on this value
-
-        // also include a pop-up that shows the place value of the earthquakes
-        if (feature.properties.mag > 1.75) {
-          return L.marker(latlng, {icon:testMarkerRed}).bindPopup("<b>"+feature.properties.place + " - " + feature.properties.mag + " on the Richter Scale"+"</b>");
-        }
-        else {
-        // magnitude is 1.75 or less
-        return L.marker(latlng, {icon:testMarkerPink}).bindPopup("<b>"+feature.properties.place + " - " + feature.properties.mag + " on the Richter Scale"+"</b>");;
-      }
+        quiz_marker = L.marker(latlng, {icon:testMarkerRed});
+        app_array.push(quiz_marker);
+        return quiz_marker
+        
     },
   }).addTo(mymap);
-mymap.fitBounds(earthquakelayer.getBounds());
+mymap.fitBounds(questionlayer.getBounds()); 
+} 
+
+
+function getScore(){
+        var score = document.querySelector('input[name="answer"]:checked').value;
+        var correct = document.getElementById("hidden").value
+        if(score==correct){
+          alert('Correct Answer, Congratulations!');
+          return true;
+        }
+        else{
+          alert('Wrong Answer, Try Again.');
+          return true;
+        }
+      }
+
+function startAnswerUpload() {
+  var question = document.getElementById("question").value;
+  var answer = document.querySelector('input[name="answer"]:checked').value;
+  var correct = document.getElementById("hidden").value;
+  var postString = "question="+question+"&answer="+answer+"&correct="+correct;
+  processAnswer(postString);
 }
 
-    
-function trackLocation() {
- if (navigator.geolocation) {
- navigator.geolocation.watchPosition(showPosition);
- } else {
- document.getElementById('showLocation').innerHTML = "Geolocation is not supported by this browser.";
- }
-
-
-
-
+var client;
+function processAnswer(postString) {
+  client = new XMLHttpRequest();
+  client.open('POST','http://developer.cege.ucl.ac.uk:30290/uploadAnswer',true);
+  client.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+  client.onreadystatechange = answerUploaded;
+  client.send(postString);
 }
 
-function showPosition(position) {
- document.getElementById('showLocation').innerHTML = "Latitude: " + position.coords.latitude +
- "<br>Longitude: " + position.coords.longitude;
-}  
-
-var xhr; // define the global variable to process the AJAX request
-function callDivChange() {
-  xhr = new XMLHttpRequest();
-  var filename = document.getElementById("filename").value;
-  xhr.open("GET", filename, true);
-  xhr.onreadystatechange = processDivChange;
-  try {
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-  }
-  catch (e) {
-  // this only works in internet explorer
-  }
-  xhr.send();
+// create the code to wait for the response from the data server, and process the response once it is received
+function answerUploaded() {
+// this function listens out for the server to say that the data is ready - i.e. has state 4
+if (client.readyState == 4) {
+// change the DIV to show the response
+alert("Answer Submitted");
+}
 }
 
-function processDivChange() {
-if (xhr.readyState < 4) // while waiting response from server
-  document.getElementById('ajaxtest').innerHTML = "Loading...";
 
-  else if (xhr.readyState === 4) { // 4 = Response from server has been completely loaded.
-    if (xhr.status == 200 && xhr.status < 300)
-      // http status between 200 to 299 are all successful
-    document.getElementById('ajaxtest').innerHTML = xhr.responseText;
-  }
-}
+
+
